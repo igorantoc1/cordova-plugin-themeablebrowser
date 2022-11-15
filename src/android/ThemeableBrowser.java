@@ -159,28 +159,24 @@ public class ThemeableBrowser extends CordovaPlugin {
                     // SELF
                     if (SELF.equals(target)) {
                         /* This code exists for compatibility between 3.x and 4.x versions of Cordova.
-                         * Previously the Config class had a static method, isUrlWhitelisted(). That
-                         * responsibility has been moved to the plugins, with an aggregating method in
-                         * PluginManager.
-                         */
-                        Boolean shouldAllowNavigation = null;
-                        if (url.startsWith("javascript:")) {
-                            shouldAllowNavigation = true;
-                        }
-                        if (shouldAllowNavigation == null) {
-                            shouldAllowNavigation = new Whitelist().isUrlWhiteListed(url);
-                        }
-                        if (shouldAllowNavigation == null) {
-                            try {
-                                Method gpm = webView.getClass().getMethod("getPluginManager");
-                                PluginManager pm = (PluginManager)gpm.invoke(webView);
-                                Method san = pm.getClass().getMethod("shouldAllowNavigation", String.class);
-                                shouldAllowNavigation = (Boolean)san.invoke(pm, url);
-                            } catch (NoSuchMethodException e) {
-                            } catch (IllegalAccessException e) {
-                            } catch (InvocationTargetException e) {
-                            }
-                        }
+       			* Previously the CordovaWebView class had a method, getWhitelist, which would
+       			* return a Whitelist object. Since the fixed whitelist is removed in Cordova 4.x,
+       			* the correct call now is to shouldAllowRequest from the plugin manager.
+      			 */
+      		   	Boolean shouldAllowRequest = null;
+      			if (isLocalTransfer) {
+          			shouldAllowRequest = true;
+      			}
+      			if (shouldAllowRequest == null) {
+				try {
+					Method gwl = webView.getClass().getMethod("getWhitelist");
+					AllowList whitelist = (AllowList)gwl.invoke(webView);
+					shouldAllowRequest = whitelist.isUrlAllowListed(source);
+				} catch (NoSuchMethodException e) {
+				} catch (IllegalAccessException e) {
+				} catch (InvocationTargetException e) {
+				}
+      			}
                         // load in webview
                         if (Boolean.TRUE.equals(shouldAllowNavigation)) {
                             webView.loadUrl(url);
